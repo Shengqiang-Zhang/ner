@@ -3,6 +3,8 @@
 import torch
 import torch.nn as nn
 
+import config
+
 
 class CRF(nn.Module):
 
@@ -52,7 +54,7 @@ class CRF(nn.Module):
 
     def get_score(self, emit, target, mask):
         T, B, N = emit.shape
-        scores = torch.zeros(T, B)
+        scores = torch.zeros(T, B, device=config.device)
 
         # 加上句间迁移分数
         scores[1:] += self.trans[target[:-1], target[1:]]

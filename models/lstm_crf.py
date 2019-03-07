@@ -8,6 +8,7 @@ import torch.optim as optim
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from .crf import CRF
+import config
 
 
 class BiLSTM_CRF_Model(nn.Module):
@@ -23,12 +24,13 @@ class BiLSTM_CRF_Model(nn.Module):
                             dropout=dropout)
         self.out = nn.Linear(hidden_size * 2, out_size)
         self.crf = CRF(out_size)
+        self.crf = self.crf.to(config.device)
         self.embedding_dropout = nn.Dropout(dropout)
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
-    def load_pre_trained(self, embed, device):
+    def load_pre_trained(self, embed):
         self.embed = nn.Embedding.from_pretrained(embed, freeze=False)
-        self.embed = self.embed.to(device)
+        self.embed = self.embed.to(config.device)
 
     def forward(self, x, lens):
         B, T = x.shape
@@ -41,21 +43,21 @@ class BiLSTM_CRF_Model(nn.Module):
         return self.out(x)
 
     def train_iters(self, train_loader, dev_loader, test_loader,
-                    device, epochs, interval, save_file):
+                    epochs, interval, save_file):
         total_time = timedelta()
         max_acc, max_epoch = 0.0, 0
         for epoch in range(1, epochs + 1):
             start = datetime.now()
             print(f"Epoch: {epoch} / {epochs}:")
-            self.train_single_iteration(train_loader, device)
+            self.train_single_iteration(train_loader)
             # Calculate train loss and accuracy
-            train_loss, train_acc = self.evaluate(train_loader, device)
+            train_loss, train_acc = self.evaluate(train_loader)
             print(f"{'train:':<6} Loss: {train_loss:.4f} Accuracy: {train_acc:.2%}")
             # Calculate dev loss and accuracy
-            dev_loss, dev_acc = self.evaluate(dev_loader, device)
+            dev_loss, dev_acc = self.evaluate(dev_loader)
             print(f"{'dev:':<6} Loss: {dev_loss:.4f} Accuracy: {dev_acc:.2%}")
             # Calculate test loss and accuracy
-            test_loss, test_acc = self.evaluate(test_loader, device)
+            test_loss, test_acc = self.evaluate(test_loader)
             print(f"{'test:':<6} Loss: {test_loss:.4f} Accuracy: {test_acc:.2%}")
 
             time = datetime.now() - start
@@ -72,7 +74,7 @@ class BiLSTM_CRF_Model(nn.Module):
         print(f"Max accuracy of dev is {max_acc:.2%} at epoch {max_epoch}")
         print(f"Total time is {total_time}s")
 
-    def train_single_iteration(self, train_loader, device):
+    def train_single_iteration(self, train_loader):
         # Set the module in training mode
         self.train()
 
@@ -81,9 +83,9 @@ class BiLSTM_CRF_Model(nn.Module):
             mask = x.gt(0)
 
             # Set device option
-            x = x.to(device)
-            y = y.to(device)
-            lens = lens.to(device)
+            x = x.to(config.device)
+            y = y.to(config.device)
+            lens = lens.to(config.device)
 
             out = self.forward(x, lens)
             out = out.transpose(0, 1)  # [T, B, N]
@@ -93,19 +95,19 @@ class BiLSTM_CRF_Model(nn.Module):
             self.optimizer.step()
 
     @torch.no_grad()
-    def evaluate(self, loader, device):
+    def evaluate(self, loader):
         # Set the module in evaluation mode
         self.eval()
         # Compute loss and accuracy
         loss, tp, total = 0, 0, 0
         for x, y, lens in loader:
+            # Set device options
+            x = x.to(config.device)
+            y = y.to(config.device)
+            lens = lens.to(config.device)
+
             # Compute x > 0 element-wise
             mask = x.gt(0)
-
-            # Set device options
-            x = x.to(device)
-            y = y.to(device)
-            lens = lens.to(device)
 
             target = y[mask]
             out = self.forward(x, lens)
