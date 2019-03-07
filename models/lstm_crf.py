@@ -80,12 +80,13 @@ class BiLSTM_CRF_Model(nn.Module):
 
         for x, y, lens in train_loader:
             self.optimizer.zero_grad()
-            mask = x.gt(0)
 
             # Set device option
             x = x.to(config.device)
             y = y.to(config.device)
             lens = lens.to(config.device)
+
+            mask = x.gt(0)
 
             out = self.forward(x, lens)
             out = out.transpose(0, 1)  # [T, B, N]
