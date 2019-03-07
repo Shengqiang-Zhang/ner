@@ -26,8 +26,9 @@ class BiLSTM_CRF_Model(nn.Module):
         self.embedding_dropout = nn.Dropout(dropout)
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
-    def load_pre_trained(self, embed):
+    def load_pre_trained(self, embed, device):
         self.embed = nn.Embedding.from_pretrained(embed, freeze=False)
+        self.embed = self.embed.to(device)
 
     def forward(self, x, lens):
         B, T = x.shape

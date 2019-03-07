@@ -74,7 +74,7 @@ if __name__ == '__main__':
                                  learning_rate=config.learning_rate)
         model.to(device)
 
-    model.load_pre_trained(corpus.embedding)
+    model.load_pre_trained(corpus.embedding, device)
     print(f"{model}")
 
     train_loader = DataLoader(dataset=train_set,
