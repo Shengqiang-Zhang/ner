@@ -40,6 +40,8 @@ if __name__ == '__main__':
 
     # Get model configuration
     config = config.config[args.model]
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
 
     print("Preprocess the data ...")
     corpus = Corpus(data_file=config.train_file, embedding_file=config.embed_file)
@@ -70,6 +72,7 @@ if __name__ == '__main__':
                                  hidden_size=config.hidden_size,
                                  out_size=len(corpus.tags),
                                  learning_rate=config.learning_rate)
+        model.to(device)
 
     model.load_pre_trained(corpus.embedding)
     print(f"{model}")
@@ -93,11 +96,12 @@ if __name__ == '__main__':
     model.train_iters(train_loader=train_loader,
                       dev_loader=dev_loader,
                       test_loader=test_loader,
+                      device=device,
                       epochs=args.epochs,
                       interval=args.interval,
                       save_file=args.save_file)
 
     model = torch.load(args.save_file)
-    loss, accuracy = model.evaluate(test_loader)
+    loss, accuracy = model.evaluate(test_loader, device)
     print(f"{'test':<6} Loss: {loss:.4f} Accuracy: {accuracy:.2%}")
     print(f"{datetime.now() - start_time}s elapsed.")

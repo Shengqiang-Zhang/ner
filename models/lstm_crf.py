@@ -40,21 +40,21 @@ class BiLSTM_CRF_Model(nn.Module):
         return self.out(x)
 
     def train_iters(self, train_loader, dev_loader, test_loader,
-                    epochs, interval, save_file):
+                    device, epochs, interval, save_file):
         total_time = timedelta()
         max_acc, max_epoch = 0.0, 0
         for epoch in range(1, epochs + 1):
             start = datetime.now()
             print(f"Epoch: {epoch} / {epochs}:")
-            self.train_single_iteration(train_loader)
+            self.train_single_iteration(train_loader, device)
             # Calculate train loss and accuracy
-            train_loss, train_acc = self.evaluate(train_loader)
+            train_loss, train_acc = self.evaluate(train_loader, device)
             print(f"{'train:':<6} Loss: {train_loss:.4f} Accuracy: {train_acc:.2%}")
             # Calculate dev loss and accuracy
-            dev_loss, dev_acc = self.evaluate(dev_loader)
+            dev_loss, dev_acc = self.evaluate(dev_loader, device)
             print(f"{'dev:':<6} Loss: {dev_loss:.4f} Accuracy: {dev_acc:.2%}")
             # Calculate test loss and accuracy
-            test_loss, test_acc = self.evaluate(test_loader)
+            test_loss, test_acc = self.evaluate(test_loader, device)
             print(f"{'test:':<6} Loss: {test_loss:.4f} Accuracy: {test_acc:.2%}")
 
             time = datetime.now() - start
@@ -71,13 +71,18 @@ class BiLSTM_CRF_Model(nn.Module):
         print(f"Max accuracy of dev is {max_acc:.2%} at epoch {max_epoch}")
         print(f"Total time is {total_time}s")
 
-    def train_single_iteration(self, train_loader):
+    def train_single_iteration(self, train_loader, device):
         # Set the module in training mode
         self.train()
 
         for x, y, lens in train_loader:
             self.optimizer.zero_grad()
             mask = x.gt(0)
+
+            # Set device option
+            x = x.to(device)
+            y = y.to(device)
+            lens = lens.to(device)
 
             out = self.forward(x, lens)
             out = out.transpose(0, 1)  # [T, B, N]
@@ -87,7 +92,7 @@ class BiLSTM_CRF_Model(nn.Module):
             self.optimizer.step()
 
     @torch.no_grad()
-    def evaluate(self, loader):
+    def evaluate(self, loader, device):
         # Set the module in evaluation mode
         self.eval()
         # Compute loss and accuracy
@@ -95,6 +100,12 @@ class BiLSTM_CRF_Model(nn.Module):
         for x, y, lens in loader:
             # Compute x > 0 element-wise
             mask = x.gt(0)
+
+            # Set device options
+            x = x.to(device)
+            y = y.to(device)
+            lens = lens.to(device)
+
             target = y[mask]
             out = self.forward(x, lens)
             out = out.transpose(0, 1)  # [T, B, N]
