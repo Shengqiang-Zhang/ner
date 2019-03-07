@@ -12,17 +12,18 @@ from .crf import CRF
 
 class BiLSTM_CRF_Model(nn.Module):
     def __init__(self, vocab_size, embed_dim, hidden_size,
-                 out_size, learning_rate, dropout=0.5):
+                 out_size, learning_rate, dropout=0.3):
         super(BiLSTM_CRF_Model, self).__init__()
         self.embed = nn.Embedding(num_embeddings=vocab_size,
                                   embedding_dim=embed_dim)
         self.lstm = nn.LSTM(input_size=embed_dim,
                             hidden_size=hidden_size,
                             batch_first=True,
-                            bidirectional=True)
+                            bidirectional=True,
+                            dropout=dropout)
         self.out = nn.Linear(hidden_size * 2, out_size)
         self.crf = CRF(out_size)
-        self.drop = nn.Dropout(dropout)
+        self.embedding_dropout = nn.Dropout(dropout)
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
     def load_pre_trained(self, embed):
@@ -31,11 +32,10 @@ class BiLSTM_CRF_Model(nn.Module):
     def forward(self, x, lens):
         B, T = x.shape
         x = self.embed(x)
-        x = self.drop(x)
+        x = self.embedding_dropout(x)
         x = pack_padded_sequence(x, lens, batch_first=True)
         x, _ = self.lstm(x)
         x, _ = pad_packed_sequence(x, batch_first=True)
-        x = self.drop(x)
 
         return self.out(x)
 
@@ -95,13 +95,13 @@ class BiLSTM_CRF_Model(nn.Module):
         for x, y, lens in loader:
             # Compute x > 0 element-wise
             mask = x.gt(0)
+            target = y[mask]
             out = self.forward(x, lens)
             out = out.transpose(0, 1)  # [T, B, N]
             y, mask = y.t(), mask.t()  # [T, B]
             predict = self.crf.viterbi(out, mask)
             loss += self.crf(out, y, mask)
             # Compute precision
-            target = y[mask]
             tp += torch.sum(predict == target).item()
             total += lens.sum().item()
         avg_loss = loss / len(loader)
