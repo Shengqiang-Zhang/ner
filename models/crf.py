@@ -75,8 +75,8 @@ class CRF(nn.Module):
     def viterbi(self, emit, mask):
         T, B, N = emit.shape
         lens = mask.sum(dim=0)
-        delta = torch.zeros(T, B, N)
-        paths = torch.zeros(T, B, N, dtype=torch.long)
+        delta = torch.zeros(T, B, N, device=config.device)
+        paths = torch.zeros(T, B, N, device=config.device, dtype=torch.long)
 
         delta[0] = self.strans + emit[0]  # [B, N]
 

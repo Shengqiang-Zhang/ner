@@ -20,12 +20,11 @@ class BiLSTM_CRF_Model(nn.Module):
         self.lstm = nn.LSTM(input_size=embed_dim,
                             hidden_size=hidden_size,
                             batch_first=True,
-                            bidirectional=True,
-                            dropout=dropout)
+                            bidirectional=True)
         self.out = nn.Linear(hidden_size * 2, out_size)
         self.crf = CRF(out_size)
         self.crf = self.crf.to(config.device)
-        self.embedding_dropout = nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
     def load_pre_trained(self, embed):
@@ -35,10 +34,11 @@ class BiLSTM_CRF_Model(nn.Module):
     def forward(self, x, lens):
         B, T = x.shape
         x = self.embed(x)
-        x = self.embedding_dropout(x)
+        x = self.dropout(x)
         x = pack_padded_sequence(x, lens, batch_first=True)
         x, _ = self.lstm(x)
         x, _ = pad_packed_sequence(x, batch_first=True)
+        x = self.dropout(x)
 
         return self.out(x)
 
