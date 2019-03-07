@@ -7,8 +7,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
-from .crf import CRF
 import config
+from .crf import CRF
 
 
 class BiLSTM_CRF_Model(nn.Module):
@@ -111,6 +111,7 @@ class BiLSTM_CRF_Model(nn.Module):
             mask = x.gt(0)
 
             target = y[mask]
+
             out = self.forward(x, lens)
             out = out.transpose(0, 1)  # [T, B, N]
             y, mask = y.t(), mask.t()  # [T, B]

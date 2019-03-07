@@ -97,4 +97,5 @@ class CRF(nn.Module):
             # 反转预测序列并保存
             predicts.append(torch.tensor(predict).flip(0))
 
-        return torch.cat(predicts)
+        predicts = torch.cat(predicts)
+        return predicts.to(config.device)
