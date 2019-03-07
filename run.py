@@ -25,7 +25,7 @@ if __name__ == '__main__':
                         help="Set the dropout ratio")
     parser.add_argument("--interval", action="store", default=10, type=int,
                         help="Set the max interval to stop")
-    parser.add_argument("--learning_rate", action="store", default=0.001, type=float,
+    parser.add_argument("--learning_rate", action="store", default=0.0001, type=float,
                         help="Set the learning rate of training")
     parser.add_argument("--threads", "-t", action="store", default=4, type=int,
                         help="Set the max num of threads")
